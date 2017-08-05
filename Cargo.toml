@@ -3,5 +3,32 @@ name = "nostd_collections"
 version = "0.1.0"
 authors = ["wmiller848 <wmiller848@users.noreply.github.com>"]
 
+[lib]
+crate-type = ["staticlib"]
+
+[profile.dev]
+opt-level = 0
+debug = true
+debug-assertions = true
+panic = 'abort'
+
+[profile.release]
+opt-level = 3
+debug = false
+debug-assertions = false
+panic = 'abort'
+
+[profile.test]
+opt-level = 1
+debug = true
+debug-assertions = true
+panic = 'abort'
+
+[profile.bench]
+opt-level = 3
+debug = false
+debug-assertions = false
+panic = 'abort'
+
 [dependencies]
 rand = "0.3"
