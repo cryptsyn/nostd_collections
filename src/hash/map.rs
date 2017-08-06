@@ -2232,7 +2232,7 @@ impl RandomState {
         // increment one of the seeds on every RandomState creation, giving
         // every corresponding HashMap a different iteration order.
         let keys: Cell<(u64, u64)> = {
-            let r = rand::OsRng::new();
+            let r = rand::StdRng::new();
             let mut r = r.expect("failed to create an OS RNG");
             Cell::new((r.gen(), r.gen()))
         };
