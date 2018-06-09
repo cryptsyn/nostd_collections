@@ -2640,14 +2640,16 @@ fn assert_covariance() {
 
 #[cfg(test)]
 mod test_map {
+    use alloc::Vec;
+
     use super::HashMap;
     use super::Entry::{Occupied, Vacant};
     use super::RandomState;
-    use cell::RefCell;
-    use rand::{thread_rng, Rng};
-    use realstd::collections::CollectionAllocErr::*;
-    use realstd::mem::size_of;
-    use realstd::usize;
+    use core::cell::RefCell;
+    use core::mem::size_of;
+    use rand::Rng;
+    use rand::SeedableRng;
+    use alloc::allocator::CollectionAllocErr::*;
 
     #[test]
     fn test_zero_capacities() {
@@ -2717,7 +2719,7 @@ mod test_map {
         assert_eq!(m2.len(), 2);
     }
 
-    thread_local! { static DROP_VECTOR: RefCell<Vec<i32>> = RefCell::new(Vec::new()) }
+    static mut DROP_VECTOR: RefCell<Vec<i32>> = RefCell::new(Vec::new());
 
     #[derive(Hash, PartialEq, Eq)]
     struct Droppable {
@@ -2726,19 +2728,14 @@ mod test_map {
 
     impl Droppable {
         fn new(k: usize) -> Droppable {
-            DROP_VECTOR.with(|slot| {
-                slot.borrow_mut()[k] += 1;
-            });
-
+            unsafe { DROP_VECTOR.borrow_mut()[k] += 1; }
             Droppable { k: k }
         }
     }
 
     impl Drop for Droppable {
         fn drop(&mut self) {
-            DROP_VECTOR.with(|slot| {
-                slot.borrow_mut()[self.k] -= 1;
-            });
+            unsafe { DROP_VECTOR.borrow_mut()[self.k] -= 1; }
         }
     }
 
@@ -2750,18 +2747,14 @@ mod test_map {
 
     #[test]
     fn test_drops() {
-        DROP_VECTOR.with(|slot| {
-            *slot.borrow_mut() = vec![0; 200];
-        });
+        unsafe { *DROP_VECTOR.borrow_mut() = vec![0; 200]; }
 
-        {
+        unsafe {
             let mut m = HashMap::new();
 
-            DROP_VECTOR.with(|v| {
-                for i in 0..200 {
-                    assert_eq!(v.borrow()[i], 0);
-                }
-            });
+            for i in 0..200 {
+                assert_eq!(DROP_VECTOR.borrow()[i], 0);
+            }
 
             for i in 0..100 {
                 let d1 = Droppable::new(i);
@@ -2769,11 +2762,9 @@ mod test_map {
                 m.insert(d1, d2);
             }
 
-            DROP_VECTOR.with(|v| {
-                for i in 0..200 {
-                    assert_eq!(v.borrow()[i], 1);
-                }
-            });
+            for i in 0..200 {
+                assert_eq!(DROP_VECTOR.borrow()[i], 1);
+            }
 
             for i in 0..50 {
                 let k = Droppable::new(i);
@@ -2781,46 +2772,36 @@ mod test_map {
 
                 assert!(v.is_some());
 
-                DROP_VECTOR.with(|v| {
-                    assert_eq!(v.borrow()[i], 1);
-                    assert_eq!(v.borrow()[i+100], 1);
-                });
+                assert_eq!(DROP_VECTOR.borrow()[i], 1);
+                assert_eq!(DROP_VECTOR.borrow()[i+100], 1);
             }
 
-            DROP_VECTOR.with(|v| {
-                for i in 0..50 {
-                    assert_eq!(v.borrow()[i], 0);
-                    assert_eq!(v.borrow()[i+100], 0);
-                }
+            for i in 0..50 {
+                assert_eq!(DROP_VECTOR.borrow()[i], 0);
+                assert_eq!(DROP_VECTOR.borrow()[i+100], 0);
+            }
 
-                for i in 50..100 {
-                    assert_eq!(v.borrow()[i], 1);
-                    assert_eq!(v.borrow()[i+100], 1);
-                }
-            });
+            for i in 50..100 {
+                assert_eq!(DROP_VECTOR.borrow()[i], 1);
+                assert_eq!(DROP_VECTOR.borrow()[i+100], 1);
+            }
         }
 
-        DROP_VECTOR.with(|v| {
-            for i in 0..200 {
-                assert_eq!(v.borrow()[i], 0);
-            }
-        });
+        for i in 0..200 {
+            unsafe { assert_eq!(DROP_VECTOR.borrow()[i], 0); }
+        }
     }
 
     #[test]
     fn test_into_iter_drops() {
-        DROP_VECTOR.with(|v| {
-            *v.borrow_mut() = vec![0; 200];
-        });
+        unsafe { *DROP_VECTOR.borrow_mut() = vec![0; 200]; }
 
-        let hm = {
+        let hm = unsafe {
             let mut hm = HashMap::new();
 
-            DROP_VECTOR.with(|v| {
-                for i in 0..200 {
-                    assert_eq!(v.borrow()[i], 0);
-                }
-            });
+            for i in 0..200 {
+                assert_eq!(DROP_VECTOR.borrow()[i], 0);
+            }
 
             for i in 0..100 {
                 let d1 = Droppable::new(i);
@@ -2828,11 +2809,9 @@ mod test_map {
                 hm.insert(d1, d2);
             }
 
-            DROP_VECTOR.with(|v| {
-                for i in 0..200 {
-                    assert_eq!(v.borrow()[i], 1);
-                }
-            });
+            for i in 0..200 {
+                assert_eq!(DROP_VECTOR.borrow()[i], 1);
+            }
 
             hm
         };
@@ -2840,36 +2819,30 @@ mod test_map {
         // By the way, ensure that cloning doesn't screw up the dropping.
         drop(hm.clone());
 
-        {
+        unsafe {
             let mut half = hm.into_iter().take(50);
 
-            DROP_VECTOR.with(|v| {
-                for i in 0..200 {
-                    assert_eq!(v.borrow()[i], 1);
-                }
-            });
+            for i in 0..200 {
+                assert_eq!(DROP_VECTOR.borrow()[i], 1);
+            }
 
             for _ in half.by_ref() {}
 
-            DROP_VECTOR.with(|v| {
-                let nk = (0..100)
-                    .filter(|&i| v.borrow()[i] == 1)
-                    .count();
+            let nk = (0..100)
+                .filter(|&i| DROP_VECTOR.borrow()[i] == 1)
+                .count();
 
-                let nv = (0..100)
-                    .filter(|&i| v.borrow()[i + 100] == 1)
-                    .count();
+            let nv = (0..100)
+                .filter(|&i| DROP_VECTOR.borrow()[i + 100] == 1)
+                .count();
 
-                assert_eq!(nk, 50);
-                assert_eq!(nv, 50);
-            });
+            assert_eq!(nk, 50);
+            assert_eq!(nv, 50);
         };
 
-        DROP_VECTOR.with(|v| {
-            for i in 0..200 {
-                assert_eq!(v.borrow()[i], 0);
-            }
-        });
+        for i in 0..200 {
+            unsafe { assert_eq!(DROP_VECTOR.borrow()[i], 0); }
+        }
     }
 
     #[test]
@@ -3400,7 +3373,7 @@ mod test_map {
         }
 
         let mut m = HashMap::new();
-        let mut rng = thread_rng();
+        let mut rng = rand::prng::ChaChaRng::from_seed([0; 32]);
 
         // Populate the map with some items.
         for _ in 0..50 {
@@ -3413,7 +3386,6 @@ mod test_map {
             match m.entry(x) {
                 Vacant(_) => {}
                 Occupied(e) => {
-                    println!("{}: remove {}", i, x);
                     e.remove();
                 }
             }
@@ -3535,7 +3507,7 @@ mod test_map {
 
         let mut empty_bytes: HashMap<u8,u8> = HashMap::new();
 
-        const MAX_USIZE: usize = usize::MAX;
+        const MAX_USIZE: usize = core::usize::MAX;
 
         // HashMap and RawTables use complicated size calculations
         // hashes_size is sizeof(HashUint) * capacity;

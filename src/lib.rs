@@ -432,8 +432,11 @@
 #![feature(try_reserve)]
 #![feature(ptr_internals)]
 #![feature(hashmap_internals)]
+#![feature(test)]
+#![feature(const_vec_new)]
 
 extern crate rand;
+#[macro_use]
 extern crate alloc;
 
 #[doc(hidden)]

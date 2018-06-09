@@ -1323,8 +1323,12 @@ fn assert_covariance() {
 
 #[cfg(test)]
 mod test_set {
+    use alloc::Vec;
+
     use super::HashSet;
     use super::super::map::RandomState;
+
+    use core::hash::Hash;
 
     #[test]
     fn test_zero_capacities() {
@@ -1647,8 +1651,8 @@ mod test_set {
 
         impl Eq for Foo {}
 
-        impl hash::Hash for Foo {
-            fn hash<H: hash::Hasher>(&self, h: &mut H) {
+        impl core::hash::Hash for Foo {
+            fn hash<H: core::hash::Hasher>(&self, h: &mut H) {
                 self.0.hash(h);
             }
         }
