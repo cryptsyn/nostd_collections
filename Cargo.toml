@@ -31,4 +31,4 @@ debug-assertions = false
 panic = 'abort'
 
 [dependencies]
-rand = { git = "https://github.com/wmiller848/rand.git", branch = "no_std", default-features = false }
+rand = { git = "https://github.com/rust-lang-nursery/rand.git", default-features = false, features = ["nightly", "alloc"] }
