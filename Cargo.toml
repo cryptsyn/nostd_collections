@@ -22,13 +22,11 @@ panic = 'abort'
 opt-level = 1
 debug = 2
 debug-assertions = true
-panic = 'abort'
 
 [profile.bench]
 opt-level = 3
 debug = false
 debug-assertions = false
-panic = 'abort'
 
 [dependencies]
-rand = { git = "https://github.com/cryptsyn/rand.git", branch = "no_std", default-features = false, features = ["nightly", "alloc"] }
+rand = { git = "https://github.com/cryptsyn/rand.git", branch = "0.5.4-nightly", default-features = false, features = ["nightly", "alloc"] }

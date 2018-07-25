@@ -436,16 +436,15 @@
 #![feature(const_vec_new)]
 
 extern crate rand;
-#[macro_use]
 extern crate alloc;
 
 #[doc(hidden)]
 pub use core::ops::Bound;
-pub use alloc::{BinaryHeap, BTreeMap, BTreeSet};
-pub use alloc::{LinkedList, VecDeque};
-pub use alloc::{binary_heap, btree_map, btree_set};
-pub use alloc::{linked_list, vec_deque};
-pub use alloc::allocator::CollectionAllocErr;
+pub use alloc::collections::{BinaryHeap, BTreeMap, BTreeSet};
+pub use alloc::collections::{LinkedList, VecDeque};
+pub use alloc::collections::{binary_heap, btree_map, btree_set};
+pub use alloc::collections::{linked_list, vec_deque};
+pub use alloc::collections::CollectionAllocErr;
 
 pub use self::hash_map::HashMap;
 pub use self::hash_set::HashSet;

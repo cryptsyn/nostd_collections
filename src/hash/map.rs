@@ -11,7 +11,7 @@
 use self::Entry::*;
 use self::VacantEntryState::*;
 
-use alloc::allocator::CollectionAllocErr;
+use alloc::collections::CollectionAllocErr;
 use core::cell::Cell;
 use core::borrow::Borrow;
 use core::cmp::max;
