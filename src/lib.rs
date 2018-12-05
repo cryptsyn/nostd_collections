@@ -426,8 +426,10 @@
 #![feature(hashmap_internals)]
 #![feature(test)]
 #![feature(const_vec_new)]
+#![feature(alloc_layout_extra)]
 
 extern crate rand;
+#[cfg_attr(test, macro_use)]
 extern crate alloc;
 
 #[doc(hidden)]
